@@ -1,0 +1,90 @@
+name: Continuous Deployment
+
+on:
+  workflow_call:
+    inputs:
+      PACKAGE_NAME:
+        required: true
+        type: string
+    secrets:
+      ENV_FILE:
+      KEY_ALIAS:
+        required: true
+      KEY_PASSWORD:
+        required: true
+      SERVICE_ACCOUNT_JSON:
+        required: true
+      STORE_PASSWORD:
+        required: true
+      UPLOAD_KEYSTORE_BASE64:
+        required: true
+
+jobs:
+  # TODO: Create a continuous deployment workflow for iOS → https://medium.com/team-rockstars-it/the-easiest-way-to-build-a-flutter-ios-app-using-github-actions-plus-a-key-takeaway-for-developers-48cf2ad7c72a
+  deploy:
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    outputs:
+      version: ${{ steps.version.outputs.current_version }}
+      whatsnew: ${{ steps.whatsnew.outputs.release_notes }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Setup Environment
+        uses: ./.github/actions/setup
+      - name: Decode upload-keystore.jks
+        if: matrix.os == 'ubuntu-latest'
+        id: keystore
+        uses: timheuer/base64-to-file@v1
+        with:
+          fileName: upload-keystore.jks
+          encodedString: ${{ secrets.UPLOAD_KEYSTORE_BASE64 }}
+      - name: Create key.properties
+        if: matrix.os  == 'ubuntu-latest'
+        run: |
+          cat <<EOF > android/key.properties
+          storeFile=${{ steps.keystore.outputs.filePath }}
+          storePassword=${{ secrets.STORE_PASSWORD }}
+          keyPassword=${{ secrets.KEY_PASSWORD }}
+          keyAlias=${{ secrets.KEY_ALIAS }}
+          EOF
+      - name: Create .env
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+      # TODO: Create a separate composite action for package info
+      - name: Extract app version
+        id: version
+        run: |
+          DEPS_OUTPUT=`flutter pub deps`
+          LOCAL_PACKAGE_VERSION=`echo "$DEPS_OUTPUT" | grep -m 1 -E '^[^|]*[0-9]+\.[0-9]+\.[0-9]+\+[0-9]+' | awk '{split($2, a, "+"); print a[1]}'`
+          echo "current_version=$LOCAL_PACKAGE_VERSION" >> "$GITHUB_OUTPUT"
+      - name: Extract release notes
+        id: whatsnew
+        uses: ffurrer2/extract-release-notes@v2
+      - name: Create whatsnew
+        run: echo "${{ steps.whatsnew }}" > whatsnew-en-US
+      - name: Build app bundle
+        run: flutter build appbundle --obfuscate --split-debug-info=build/app/outputs/symbol --dart-define-from-file=.env
+      - name: Release to Play Store
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.SERVICE_ACCOUNT_JSON }}
+          packageName: ${{ inputs.PACKAGE_NAME }}
+          track: beta
+          releaseFiles: build/app/outputs/bundle/release/app-release.aab
+          debugSymbols: build/app/intermediates/merged_native_libs/release/out/lib
+          mappingFile: build/app/outputs/mapping/release/mapping.txt
+          whatsNewDirectory: /
+
+  release:
+    runs-on: ubuntu-latest
+    permissions: write-all
+    needs: deploy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Create release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create v${{ needs.deploy.outputs.version }} --notes '${{ needs.deploy.outputs.whatsnew }}'
