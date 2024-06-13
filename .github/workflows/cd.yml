@@ -33,7 +33,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Setup Environment
-        uses: ./.github/actions/setup
+        uses: fa-fifi/github-actions/.github/actions/setup@main
       - name: Decode upload-keystore.jks
         if: matrix.os == 'ubuntu-latest'
         id: keystore
