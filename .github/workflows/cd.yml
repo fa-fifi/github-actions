@@ -51,7 +51,10 @@ jobs:
           keyAlias=${{ secrets.KEY_ALIAS }}
           EOF
       - name: Create .env
-        run: echo "${{ secrets.ENV_FILE }}" > .env
+        run: |
+          if [ "${{ secrets.ENV_FILE }}" != '' ]; then
+            echo "${{ secrets.ENV_FILE }}" > .env
+          fi
       # TODO: Create a separate composite action for package info
       - name: Extract app version
         id: version
