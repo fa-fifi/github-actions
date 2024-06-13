@@ -17,7 +17,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Setup Environment
-        uses: ./.github/actions/setup
+        uses: fa-fifi/github-actions/.github/actions/setup@main
       - name: Verify formatting
         run: dart format --output=none --set-exit-if-changed .
       - name: Analyze project source
@@ -34,7 +34,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
       - name: Setup Environment
-        uses: ./.github/actions/setup
+        uses: fa-fifi/github-actions/.github/actions/setup@main
       - name: Build apk
         run: flutter build apk --${{ inputs.build-mode }}
       - name: Upload apk
