@@ -1,0 +1,21 @@
+name: Setup Environment
+
+runs:
+  using: composite
+  steps:
+    - name: Setup Flutter
+      uses: subosito/flutter-action@v2
+      with:
+        channel: stable
+        cache: true
+    - name: Install dependencies
+      run: flutter pub get
+      shell: bash
+    - name: Setup Java
+      if: runner.os == 'Linux'
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+        cache: 'gradle'
+        check-latest: true
