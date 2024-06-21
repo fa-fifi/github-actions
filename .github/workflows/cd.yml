@@ -20,7 +20,9 @@ on:
         required: true
 
 jobs:
-  # TODO: Create a continuous deployment workflow for iOS → https://medium.com/team-rockstars-it/the-easiest-way-to-build-a-flutter-ios-app-using-github-actions-plus-a-key-takeaway-for-developers-48cf2ad7c72a
+  # TODO: Refactor Play Store deployment as a separate composite action.
+  # TODO: Create a CD workflow for App Store.
+  # → https://medium.com/team-rockstars-it/the-easiest-way-to-build-a-flutter-ios-app-using-github-actions-plus-a-key-takeaway-for-developers-48cf2ad7c72a
   deploy:
     strategy:
       matrix:
@@ -55,7 +57,7 @@ jobs:
           if [ "${{ secrets.ENV_FILE }}" != '' ]; then
             echo "${{ secrets.ENV_FILE }}" > .env
           fi
-      # TODO: Create a separate composite action for package info
+      # TODO: Create a composite action for package info.
       - name: Extract app version
         id: version
         run: |

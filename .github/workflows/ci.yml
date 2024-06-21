@@ -1,3 +1,4 @@
+## TODO: Turn CI workflow as a composite action instead.
 name: Continuous Integration
 
 on:
